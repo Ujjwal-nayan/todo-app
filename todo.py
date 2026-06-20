@@ -1,16 +1,20 @@
 import json
 
+
 def load_tasks():
-    with open("tasks.json", "r") as file:
-        return json.load(file)
+    try:
+        with open("tasks.json", "r") as file:
+            return json.load(file)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return []
+
 
 def save_tasks(tasks):
     with open("tasks.json", "w") as file:
         json.dump(tasks, file, indent=4)
 
-def view_tasks():
-    tasks = load_tasks()
 
+def view_tasks(tasks):
     if len(tasks) == 0:
         print("No tasks found.")
         return
@@ -25,7 +29,29 @@ def view_tasks():
 
     print("-" * 30)
 
-def add_task():
+
+def get_priority():
+    while True:
+        p = input("Priority (H/M/L): ").strip().upper()
+        if p == "H":
+            return "High"
+        elif p == "M":
+            return "Medium"
+        elif p == "L":
+            return "Low"
+        else:
+            print("Invalid priority! Enter H, M, or L.")
+
+
+def get_task_id(prompt):
+    while True:
+        try:
+            return int(input(prompt))
+        except ValueError:
+            print("Please enter a valid number.")
+
+
+def add_task(tasks):
     title = input("Enter task title: ").strip()
 
     while title == "":
@@ -43,56 +69,34 @@ def add_task():
 
     if more == "y":
         deadline = input("Enter deadline: ").strip()
+        priority = get_priority()
 
-        while True:
-            p = input("Priority (H/M/L): ").strip().upper()
-
-            if p == "H":
-                priority = "High"
-                break
-            elif p == "M":
-                priority = "Medium"
-                break
-            elif p == "L":
-                priority = "Low"
-                break
-            else:
-                print("Invalid priority!")
+    new_id = max((t["id"] for t in tasks), default=0) + 1
 
     task = {
+        "id": new_id,
         "title": title,
         "completed": False,
         "deadline": deadline,
         "priority": priority
     }
 
-    tasks = load_tasks()
-
-    if len(tasks) == 0:
-        task["id"] = 1
-    else:
-        task["id"] = max(task["id"] for task in tasks) + 1
-
     tasks.append(task)
-
     save_tasks(tasks)
-
     print("✅ Task added successfully!")
 
-def edit_task():
-    tasks = load_tasks()
 
+def edit_task(tasks):
     if len(tasks) == 0:
         print("No tasks found.")
         return
 
-    view_tasks()
+    view_tasks(tasks)
 
-    task_id = int(input("Enter Task ID to edit: "))
+    task_id = get_task_id("Enter Task ID to edit: ")
 
     for task in tasks:
         if task["id"] == task_id:
-
             print("""
 1. Edit Title
 2. Edit Deadline
@@ -100,80 +104,58 @@ def edit_task():
 4. Toggle Completed
 5. Cancel
 """)
-
             choice = input("Enter choice: ").strip()
 
             if choice == "1":
                 task["title"] = input("New title: ").strip()
-
             elif choice == "2":
                 task["deadline"] = input("New deadline: ").strip()
-
             elif choice == "3":
-                while True:
-                    p = input("Priority (H/M/L): ").strip().upper()
-
-                    if p == "H":
-                        task["priority"] = "High"
-                        break
-                    elif p == "M":
-                        task["priority"] = "Medium"
-                        break
-                    elif p == "L":
-                        task["priority"] = "Low"
-                        break
-                    else:
-                        print("Invalid priority!")
-
+                task["priority"] = get_priority()
             elif choice == "4":
                 task["completed"] = not task["completed"]
-
             elif choice == "5":
                 return
-
             else:
                 print("Invalid choice.")
                 return
 
             save_tasks(tasks)
-
             print("✅ Task updated.")
             return
 
     print("❌ Task ID not found.")
 
-def delete_task():
-    tasks = load_tasks()
 
+def delete_task(tasks):
     if len(tasks) == 0:
         print("No tasks to delete.")
         return
 
-    view_tasks()
+    view_tasks(tasks)
 
-    task_id = int(input("Enter Task ID to delete: "))
+    task_id = get_task_id("Enter Task ID to delete: ")
 
     for task in tasks:
         if task["id"] == task_id:
-
             confirm = input(f"Delete '{task['title']}'? (y/n): ").strip().lower()
 
             if confirm == "y":
                 tasks.remove(task)
-
                 save_tasks(tasks)
-
                 print("✅ Task deleted.")
             else:
                 print("Deletion cancelled.")
-
             return
 
     print("❌ Task ID not found.")
 
 
-while True:
-    print("""
+if __name__ == "__main__":
+    tasks = load_tasks()
+
+    while True:
+        print("""
 ========== TODO ==========
 1. View Tasks
 2. Add Task
@@ -182,24 +164,18 @@ while True:
 5. Exit
 ==========================
 """)
+        choice = input("Enter choice: ").strip()
 
-    choice = input("Enter choice: ").strip()
-
-    if choice == "1":
-        view_tasks()
-
-    elif choice == "2":
-        add_task()
-
-    elif choice == "3":
-        edit_task()
-
-    elif choice == "4":
-        delete_task()
-
-    elif choice == "5":
-        print("Goodbye!")
-        break
-
-    else:
-        print("Invalid choice!")
+        if choice == "1":
+            view_tasks(tasks)
+        elif choice == "2":
+            add_task(tasks)
+        elif choice == "3":
+            edit_task(tasks)
+        elif choice == "4":
+            delete_task(tasks)
+        elif choice == "5":
+            print("Goodbye!")
+            break
+        else:
+            print("Invalid choice!")
